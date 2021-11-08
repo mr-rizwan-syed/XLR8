@@ -32,7 +32,7 @@ XSSURLSCAN(){
     
     #need to change kxss location
     echo "${GREEN}[+]Waybackurl Output file > Running KXSS and piping it to Dalfox${RESET}"
-    cat $project/$project-all-urls.log | /root/go/bin/kxss | sed 's/=.*/=/' | sed 's/URL: //' | sort -u | dalfox pipe -o $project/first.txt
+    cat $project/$project-all-urls.log | /root/go/bin/kxss | sed 's/=.*/=/' | sed 's/URL: //' | sort -u | dalfox pipe --output $project/first.txt
 
     cat $project/$project-all-urls.log | grep "=" | egrep -iv ".(jpg|jpeg|gif|css|tif|tiff|png|ttf|woff|woff2|ico|pdf|svg|txt|js)" | qsreplace '"><script>confirm(1)</script>' | tee $project/$project-combinedfuzz.json && cat $project/$project-combinedfuzz.json 
     echo "${GREEN}[+]Waybackurl Output file > greping parameters with = > running with default payload...${RESET}"
@@ -40,16 +40,16 @@ XSSURLSCAN(){
     file="$project/$project-combinedfuzz.json"
     while IFS= read line
         do
-            curl --silent --path-as-is --insecure "$line" | grep -qs "<script>confirm(1)" && echo ${RED}Vulnerable${RESET} $line\n | tee $project/second.txt 
+            curl --silent --path-as-is --insecure "$line" | grep -qs "<script>confirm(1)" && echo ${RED}Vulnerable${RESET} $line\n && echo "$line\n" >> $project/second.txt
         done <"$file"
 
       
     echo "${GREEN}[+]Waybackurl Output file > greping parameters with = > Piping it to Dalfox...${RESET}"
-    cat $project/$project-all-urls.log | grep "=" | egrep -iv ".(jpg|jpeg|gif|css|tif|tiff|png|ttf|woff|woff2|ico|pdf|svg|txt|js)" | sed 's/=.*/=/' | sort -u | dalfox pipe -o $project/third.txt
+    cat $project/$project-all-urls.log | grep "=" | egrep -iv ".(jpg|jpeg|gif|css|tif|tiff|png|ttf|woff|woff2|ico|pdf|svg|txt|js)" | sed 's/=.*/=/' | sort -u | dalfox pipe --output $project/third.txt 
 
     #read -p 'Add Custom Parameter like source= ' cparam
     echo "${GREEN}Checking on XSS with Dalfox on Custom Parameter given...${RESET}"
-    cat $project/$project-all-urls.log | grep $cparam | sed 's/=.*/=/' | dalfox pipe -o $project/fourth.txt
+    cat $project/$project-all-urls.log | grep $cparam | sed 's/=.*/=/' | dalfox pipe --output $project/fourth.txt
 
     echo "${RED}>>>>JOOOOOOOODDDDDDDDDDD!!!!!<<<< ${RESET}"
            
