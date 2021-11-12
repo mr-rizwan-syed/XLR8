@@ -1,9 +1,11 @@
 # XLR8
 
 # JOD-XSS Requirements
-1. go
-2. gf
-3. gf-patterns
-4. qsreplace
-5. kxss
-6. dalfox
+1. waybackurls
+2. go
+3. gf
+4. gf-patterns
+5. qsreplace
+6. kxss
+7. dalfox
+8. qsinject
