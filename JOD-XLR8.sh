@@ -86,7 +86,7 @@ function starter(){
     screenshoter(){
         echo "${BLUE}[+] Taking Screenshot!!! ${RESET}"
         echo gowitness file -f $project/$domain-probe-url.txt -P $project/sd-screenshot --chrome-path $chrome_path
-        gowitness file -D $project/ -f $project/$domain-probe-url.txt -P $project/sd-screenshot --chrome-path /mnt/c/Program\ Files/Google/Chrome/Application/chrome.exe
+        gowitness file -f $project/$domain-probe-url.txt -P $project/sd-screenshot --chrome-path /mnt/c/Program\ Files/Google/Chrome/Application/chrome.exe
         echo screenshoter done !!!
     }
 
