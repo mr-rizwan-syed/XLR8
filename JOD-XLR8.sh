@@ -14,6 +14,8 @@ RESET=`tput sgr0`
 WBOLD=`tput bold 7`
 WUL=`tput smul`
 
+chrome_path="/mnt/c/Program\ Files/Google/Chrome/Application/chrome.exe"
+
 function trap_ctrlc ()
 {
     echo "Ctrl-C caught...performing clean up"
@@ -78,12 +80,14 @@ function starter(){
     fi
 
     webportscanner(){
-        findomain -f $project/$domain-probe-url.txt --pscan -u $project/$project-webportscan.txt
+        findomain -q -f $project/$domain-probe-url.txt --pscan -u $project/$project-webportscan.txt
     }
 
     screenshoter(){
         echo "${BLUE}[+] Taking Screenshot!!! ${RESET}"
-        gowitness file -f $project/$domain-probe-url.txt -P $project/sd-screenshot --chrome-path /mnt/c/Program\ Files\ \(x86\)/Google/Chrome/Application/chrome.exe
+        echo gowitness file -f $project/$domain-probe-url.txt -P $project/sd-screenshot --chrome-path $chrome_path
+        gowitness file -D $project/ -f $project/$domain-probe-url.txt -P $project/sd-screenshot --chrome-path /mnt/c/Program\ Files/Google/Chrome/Application/chrome.exe
+        echo screenshoter done !!!
     }
 
     if is_sd_snap_checker; then
@@ -166,11 +170,31 @@ parametercrawler(){
     
 }
 
+xssoptions(){
+    ##dpayload
+    cat $project/$URL/uniqueparam.txt | qsinject -i '"><script>confirm(1)</script>' -iu -decode > $project/$URL/qsinject.txt && echo qsinject.txt >> $project/$URL/tmplist
+    cat $project/$URL/uniqueparam.txt | gf xss > $project/$URL/gfxss.txt && echo -e gfxss.txt >> $project/$URL/tmplist
+    echo -e
+    echo "${MAGENTA}Total Count...${RESET}"
+    echo -n "all-urls.log.txt : " & cat $project/$URL/all-urls.log | wc -l
+    echo -n "uniqueparam.txt : " & cat $project/$URL/uniqueparam.txt | wc -l 
+    echo -n "qsinject.txt : " & cat $project/$URL/qsinject.txt | wc -l
+    echo -n "gfxss.txt : " & cat $project/$URL/gfxss.txt | wc -l
+    #echo -n "kxss.txt : " & cat $project/$URL/kxss.txt | wc -l
+    
+    echo -e
+    echo "${RED}Choose which results to run with dalfox...${RESET}"
+    select d in $(<$project/$URL/tmplist);
+    do test -n "$d" && break; 
+    echo ">>> Invalid Selection"; 
+    done
+    firstv=$d
+}
+
+
 dpayloadinjector(){
         
     qsinjetor(){
-        ##dpayload
-        cat $project/$URL/uniqueparam.txt | qsinject -i '"><script>confirm(1)</script>' -iu -decode > $project/$URL/qsinject.txt && echo qsinject.txt >> $project/$URL/tmplist
         echo -e
         echo "[${RED}+${RESET}] ${GREEN}Waybackurl Output file > qsinject > running with default payload...${RESET}"
         echo -e
@@ -185,7 +209,7 @@ dpayloadinjector(){
 
     qsivalidator(){
         if is_uniqueparameter_checker; then
-        echo "Qsinject File  Exist Already" || return
+        echo "[I]Qsinject File  Exist Already" || return
         else
             qsinjetor
         fi
@@ -197,26 +221,11 @@ dpayloadinjector(){
 }
 
 XSSURLSCAN(){
-        
-    cat $project/$URL/uniqueparam.txt | gf xss > $project/$URL/gfxss.txt && echo -e gfxss.txt >> $project/$URL/tmplist
+    
+    
     #cat $project/$URL/uniqueparam.txt | /root/go/bin/kxss | sed 's/=.*/=/' | sed 's/URL: //' | sort -u > $project/$URL/kxss.txt && echo kxss.txt >> $project/$URL/tmplist
     
-    echo -e
-    echo "${MAGENTA}Total Count...${RESET}"
-    echo -n "all-urls.log.txt : " & cat $project/$URL/all-urls.log | wc -l
-    echo -n "uniqueparam.txt : " & cat $project/$URL/uniqueparam.txt | wc -l 
-    echo -n "qsinject.txt : " & cat $project/$URL/qsinject.txt | wc -l
-    echo -n "gfxss.txt : " & cat $project/$URL/gfxss.txt | wc -l
-    echo -n "kxss.txt : " & cat $project/$URL/kxss.txt | wc -l
-    
-    echo -e
-    echo "${RED}Choose which results to run with dalfox...${RESET}"
-    select d in $(<$project/$URL/tmplist);
-    do test -n "$d" && break; 
-    echo ">>> Invalid Selection"; 
-    done
-    firstv=$d
-    echo -e
+    echo -e $firstv
     echo "Filename: ${BLUE}$project/$URL/$firstv ${RESET}" && cat $project/$URL/$firstv
     echo "${BLUE}Piping Dalfox on $project/$URL/$firstv! ${RESET}"
     echo -e
@@ -253,6 +262,7 @@ function MENU {
 }
 
 JOD_XSS(){ 
+    xssoptions
     dpayloadinjector
     XSSURLSCAN
 }
