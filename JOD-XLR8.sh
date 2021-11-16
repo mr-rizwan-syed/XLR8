@@ -170,31 +170,9 @@ parametercrawler(){
     
 }
 
-xssoptions(){
-    ##dpayload
-    cat $project/$URL/uniqueparam.txt | qsinject -i '"><script>confirm(1)</script>' -iu -decode > $project/$URL/qsinject.txt && echo qsinject.txt >> $project/$URL/tmplist
-    cat $project/$URL/uniqueparam.txt | gf xss > $project/$URL/gfxss.txt && echo -e gfxss.txt >> $project/$URL/tmplist
-    echo -e
-    echo "${MAGENTA}Total Count...${RESET}"
-    echo -n "all-urls.log.txt : " & cat $project/$URL/all-urls.log | wc -l
-    echo -n "uniqueparam.txt : " & cat $project/$URL/uniqueparam.txt | wc -l 
-    echo -n "qsinject.txt : " & cat $project/$URL/qsinject.txt | wc -l
-    echo -n "gfxss.txt : " & cat $project/$URL/gfxss.txt | wc -l
-    #echo -n "kxss.txt : " & cat $project/$URL/kxss.txt | wc -l
-    
-    echo -e
-    echo "${RED}Choose which results to run with dalfox...${RESET}"
-    select d in $(<$project/$URL/tmplist);
-    do test -n "$d" && break; 
-    echo ">>> Invalid Selection"; 
-    done
-    firstv=$d
-}
-
-
 dpayloadinjector(){
         
-    qsinjetor(){
+    qsinjector(){
         echo -e
         echo "[${RED}+${RESET}] ${GREEN}Waybackurl Output file > qsinject > running with default payload...${RESET}"
         echo -e
@@ -207,22 +185,43 @@ dpayloadinjector(){
             done <"$file" 
         }
 
-    qsivalidator(){
-        if is_uniqueparameter_checker; then
-        echo "[I]Qsinject File  Exist Already" || return
-        else
-            qsinjetor
-        fi
-    }
+    # qsivalidator(){
+    #     if is_uniqueparameter_checker; then
+    #     echo "[I] Qsinject File  Exist Already" || return
+    #     else
+    #         qsinjector
+    #     fi
+    # }
     
-    [ -z "$URL" ] && askurl || qsivalidator
+    [ -z "$URL" ] && askurl || qsinjector
     echo Got this $URL
 
 }
 
+xssoptions(){
+    ##dpayload
+    cat $project/$URL/uniqueparam.txt | qsinject -i '"><script>confirm(1)</script>' -iu -decode > $project/$URL/qsinject.txt && echo qsinject.txt >> $project/$URL/tmplist
+    cat $project/$URL/uniqueparam.txt | gf xss > $project/$URL/gfxss.txt && echo -e gfxss.txt >> $project/$URL/tmplist
+    echo -e
+    echo "${MAGENTA}Total Count...${RESET}"
+    echo -n "all-urls.log.txt : " & cat $project/$URL/all-urls.log | wc -l
+    echo -n "uniqueparam.txt : " & cat $project/$URL/uniqueparam.txt | wc -l 
+    echo -n "qsinject.txt : " & cat $project/$URL/qsinject.txt | wc -l
+    echo -n "gfxss.txt : " & cat $project/$URL/gfxss.txt | wc -l
+    #echo -n "kxss.txt : " & cat $project/$URL/kxss.txt | wc -l
+
+    echo -e
+    echo "${RED}Choose which results to run with dalfox...${RESET}"
+    select d in $(<$project/$URL/tmplist);
+    do test -n "$d" && break; 
+    echo ">>> Invalid Selection"; 
+    done
+    firstv=$d
+}
+
+
 XSSURLSCAN(){
-    
-    
+    dpayloadinjector
     #cat $project/$URL/uniqueparam.txt | /root/go/bin/kxss | sed 's/=.*/=/' | sed 's/URL: //' | sort -u > $project/$URL/kxss.txt && echo kxss.txt >> $project/$URL/tmplist
     
     echo -e $firstv
@@ -263,7 +262,6 @@ function MENU {
 
 JOD_XSS(){ 
     xssoptions
-    dpayloadinjector
     XSSURLSCAN
 }
 
