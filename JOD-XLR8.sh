@@ -221,10 +221,12 @@ xssoptions(){
 
 
 XSSURLSCAN(){
+    echo -e I Got it you want to run dalfox on $firstv
+    echo "${BLUE}But First I'll be Running dpayloadinjector...${RESET}"
     dpayloadinjector
     #cat $project/$URL/uniqueparam.txt | /root/go/bin/kxss | sed 's/=.*/=/' | sed 's/URL: //' | sort -u > $project/$URL/kxss.txt && echo kxss.txt >> $project/$URL/tmplist
     
-    echo -e $firstv
+   
     echo "Filename: ${BLUE}$project/$URL/$firstv ${RESET}" && cat $project/$URL/$firstv
     echo "${BLUE}Piping Dalfox on $project/$URL/$firstv! ${RESET}"
     echo -e
