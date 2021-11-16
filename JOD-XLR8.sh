@@ -53,6 +53,12 @@ function checker(){
         test -f "$project/$project-webportscan.txt"
     }
 
+    is_uniqueparameter_checker(){
+        test -f "$project/$URL/uniqueparam.txt"
+    }
+    is_uniqueparameter_checker(){
+        test -f "$project/$URL/qsinject.txt"
+    }
 }
 
 
@@ -61,7 +67,7 @@ function starter(){
     findomainer(){
         echo "${BLUE}[+] Finding SubDomains ${RESET}"
         findomain -t $domain -u $project/$domain-sub.txt
-        cat $domain/$domain-sub.txt | httpx -o $project/$domain-sub-url.txt
+        cat $project/$domain-sub.txt | httpx -o $project/$domain-probe-url.txt
         #cat $project/$domain-sub.txt
     }
     
@@ -71,9 +77,13 @@ function starter(){
         findomainer
     fi
 
+    webportscanner(){
+        findomain -f $project/$domain-probe-url.txt --pscan -u $project/$project-webportscan.txt
+    }
+
     screenshoter(){
         echo "${BLUE}[+] Taking Screenshot!!! ${RESET}"
-        gowitness file -f $project/$domain-sub-url.txt -P $project/sd-screenshot --chrome-path /mnt/c/Program\ Files/Google/Chrome/Application/chrome.exe
+        gowitness file -f $project/$domain-probe-url.txt -P $project/sd-screenshot --chrome-path /mnt/c/Program\ Files\ \(x86\)/Google/Chrome/Application/chrome.exe
     }
 
     if is_sd_snap_checker; then
@@ -83,16 +93,12 @@ function starter(){
         read -p "Do you want to run screenshoter on each subdomains [y/n]?" yn
         case $yn in
             [Yy]* ) screenshoter; break;;
-            [Nn]* ) exit;;
+            [Nn]* ) break;;
             * ) echo "Please answer yes or no.";;
         esac
         done
     fi
-        
-    webportscanner(){
-        findomain -f $project/$domain-sub-url.txt --pscan -u $project/$project-webportscan.txt
-    }
-
+    
     if [[ $? -eq 1 ]]; then
     echo "some_command failed"
     fi
@@ -104,99 +110,121 @@ function starter(){
         read -p "Do you want to run webportscanner on each subdomains [y/n]?" yn
         case $yn in
             [Yy]* ) webportscanner; break;;
-            [Nn]* ) exit;;
+            [Nn]* ) break;;
             * ) echo "Please answer yes or no.";;
         esac
         done
     fi
       
     echo -e
+    cat $project/$domain-probe-url.txt | sed 's/https\?:\/\///' > $project/$domain-sub-url-stripped.txt
+    #cat $project/$domain-sub-url-stripped.txt
     echo "${RED}Choose on which domain you want to scan${RESET}"
-    select d in $(<$project/$domain-sub.txt);
+    select d in $(<$project/$domain-sub-url-stripped.txt);
     do test -n "$d\c" && break; 
     echo ">>> Invalid Selection"; 
     done
     URL=$d
 }
 
-parametercrawler(){
-    
-    askurl(){
+askurl(){
         read -p "${RED}URL: ${RESET}" URL && echo -e
         #read -p 'Add Custom Parameter like source= ' cparam
         #read -p 'BXSS Hunter URL; xss.ht' bxss
     }
 
+parametercrawler(){
+    
     runpc(){
     
         ## Need help creating folder name with URL stripping http/s 
-        echo $URL
-        folder(){
-            echo $URL | sed 's/https\?:\/\///'
-        }
+        echo Scannning $URL
         
-        mkdir -p $project/$URLX
-        
+        mkdir -p $project/$URL
+
         ##waybackurl
         echo -e
-        waybackurls $URL > $project/$URLX/all-urls.log
+        waybackurls $URL > $project/$URL/all-urls.log
         echo "[${GREEN}I${RESET}] Done with Waybackurls${RESET}"
-        
+               
         #Stripping
         echo -e
-        cat $project/$URLX/all-urls.log | grep "=" | egrep -iv ".(jpg|jpeg|gif|css|tif|tiff|png|ttf|woff|woff2|ico|pdf|svg|txt|js)" > $project/$URLX/uniqueparam.txt && echo -e uniqueparam.txt >> $project/$URLX/tmplist
+        cat $project/$URL/all-urls.log | grep "=" | egrep -iv ".(jpg|jpeg|gif|css|tif|tiff|png|ttf|woff|woff2|ico|pdf|svg|txt|js)" > $project/$URL/uniqueparam.txt && echo -e uniqueparam.txt >> $project/$URL/tmplist
         echo "[${GREEN}I${RESET}]Extracted URL with Valid Parameters${RESET}"
     }
     
-    [ -z "$URL" ] && askurl || runpc
+    upcvalidator(){
+        if is_uniqueparameter_checker; then
+        echo "Unique Parameter File Exist Already" || return
+        else
+            runpc
+        fi
+    }
+
+    [ -z "$URL" ] && askurl || upcvalidator
     echo Got this $URL
-    runpc
+    
 }
 
 dpayloadinjector(){
-    ##dpayload
-    cat $project/$URLX/uniqueparam.txt | qsinject -i '"><script>confirm(1)</script>' -iu -decode > $project/$URLX/qsinject.txt && echo qsinject.txt >> $project/$URLX/tmplist
-    echo -e
-    echo "[${RED}+${RESET}] ${GREEN}Waybackurl Output file > qsinject > running with default payload...${RESET}"
-    echo -e
-    echo "${CYAN}${WUL}curl --silent --path-as-is --insecure [eachline] | grep -qs '<script>confirm(1) && echo Vulnerable [each-line] && echo [each-line] >> $project/$URLX/xss-poc-injected.txt${RESET}"
+        
+    qsinjetor(){
+        ##dpayload
+        cat $project/$URL/uniqueparam.txt | qsinject -i '"><script>confirm(1)</script>' -iu -decode > $project/$URL/qsinject.txt && echo qsinject.txt >> $project/$URL/tmplist
+        echo -e
+        echo "[${RED}+${RESET}] ${GREEN}Waybackurl Output file > qsinject > running with default payload...${RESET}"
+        echo -e
+        echo "${CYAN}${WUL}curl --silent --path-as-is --insecure [eachline] | grep -qs '<script>confirm(1) && echo Vulnerable [each-line] && echo [each-line] >> $project/$URL/xss-poc-injected.txt${RESET}"
 
-    file="$project/$URLX/qsinject.txt"
-    while IFS= read line
-        do
-            curl --silent --path-as-is --insecure "$line" | grep -qs "<script>confirm(1)" && echo ${RED}Vulnerable${RESET} $line && echo "$line" >> $project/$URLX/xss-poc-injected.txt
-        done <"$file" 
+        file="$project/$URL/qsinject.txt"
+        while IFS= read line
+            do
+                curl --silent --path-as-is --insecure "$line" | grep -qs "<script>confirm(1)" && echo ${RED}Vulnerable${RESET} $line && echo "$line" >> $project/$URL/xss-poc-injected.txt
+            done <"$file" 
+        }
+
+    qsivalidator(){
+        if is_uniqueparameter_checker; then
+        echo "Qsinject File  Exist Already" || return
+        else
+            qsinjetor
+        fi
+    }
+    
+    [ -z "$URL" ] && askurl || qsivalidator
+    echo Got this $URL
+
 }
 
 XSSURLSCAN(){
         
-    cat $project/$URLX/uniqueparam.txt | gf xss > $project/$URLX/gfxss.txt && echo -e gfxss.txt >> $project/$URLX/tmplist
-    #cat $project/$URLX/uniqueparam.txt | /root/go/bin/kxss | sed 's/=.*/=/' | sed 's/URL: //' | sort -u > $project/$URLX/kxss.txt && echo kxss.txt >> $project/$URLX/tmplist
+    cat $project/$URL/uniqueparam.txt | gf xss > $project/$URL/gfxss.txt && echo -e gfxss.txt >> $project/$URL/tmplist
+    #cat $project/$URL/uniqueparam.txt | /root/go/bin/kxss | sed 's/=.*/=/' | sed 's/URL: //' | sort -u > $project/$URL/kxss.txt && echo kxss.txt >> $project/$URL/tmplist
     
     echo -e
     echo "${MAGENTA}Total Count...${RESET}"
-    echo -n "all-urls.log.txt : " & cat $project/$URLX/all-urls.log | wc -l
-    echo -n "uniqueparam.txt : " & cat $project/$URLX/uniqueparam.txt | wc -l 
-    echo -n "qsinject.txt : " & cat $project/$URLX/qsinject.txt | wc -l
-    echo -n "gfxss.txt : " & cat $project/$URLX/gfxss.txt | wc -l
-    echo -n "kxss.txt : " & cat $project/$URLX/kxss.txt | wc -l
+    echo -n "all-urls.log.txt : " & cat $project/$URL/all-urls.log | wc -l
+    echo -n "uniqueparam.txt : " & cat $project/$URL/uniqueparam.txt | wc -l 
+    echo -n "qsinject.txt : " & cat $project/$URL/qsinject.txt | wc -l
+    echo -n "gfxss.txt : " & cat $project/$URL/gfxss.txt | wc -l
+    echo -n "kxss.txt : " & cat $project/$URL/kxss.txt | wc -l
     
     echo -e
     echo "${RED}Choose which results to run with dalfox...${RESET}"
-    select d in $(<$project/$URLX/tmplist);
+    select d in $(<$project/$URL/tmplist);
     do test -n "$d" && break; 
     echo ">>> Invalid Selection"; 
     done
     firstv=$d
     echo -e
-    echo "Filename: ${BLUE}$project/$URLX/$firstv ${RESET}" && cat $project/$URLX/$firstv
-    echo "${BLUE}Piping Dalfox on $project/$URLX/$firstv! ${RESET}"
+    echo "Filename: ${BLUE}$project/$URL/$firstv ${RESET}" && cat $project/$URL/$firstv
+    echo "${BLUE}Piping Dalfox on $project/$URL/$firstv! ${RESET}"
     echo -e
-    echo "${CYAN}${WUL}cat $project/$URLX/$firstv | dalfox pipe --output $project/xss-poc-dalfox.txt${RESET}"
+    echo "${CYAN}${WUL}cat $project/$URL/$firstv | dalfox pipe --output $project/xss-poc-dalfox.txt${RESET}"
     
     #running here
     echo -e
-    cat $project/$URLX/$firstv | dalfox pipe --output $project/$URLX/xss-poc-dalfox.txt
+    cat $project/$URL/$firstv | dalfox pipe --output $project/$URL/xss-poc-dalfox.txt
     echo -e
     echo "${MAGENTA}>>>>JOOOOOOOODDDDDDDDDDD!!!!!<<<< ${RESET}"
 }
@@ -224,8 +252,7 @@ function MENU {
     echo "$ERROR"
 }
 
-JOD_XSS(){
-    parametercrawler 
+JOD_XSS(){ 
     dpayloadinjector
     XSSURLSCAN
 }
