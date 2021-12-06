@@ -14,7 +14,7 @@ RESET=`tput sgr0`
 WBOLD=`tput bold 7`
 WUL=`tput smul`
 
-chrome_path="/mnt/c/Program\ Files/Google/Chrome/Application/chrome.exe"
+chrome_path="/mnt/c/Program\ Files\ \(x86\)/Google/Chrome/Application/chrome.exe"
 
 function trap_ctrlc ()
 {
@@ -86,7 +86,7 @@ function starter(){
     screenshoter(){
         echo "${BLUE}[+] Taking Screenshot!!! ${RESET}"
         echo gowitness file -f $project/$domain-probe-url.txt -P $project/sd-screenshot --chrome-path $chrome_path
-        gowitness file -f $project/$domain-probe-url.txt -P $project/sd-screenshot --chrome-path /mnt/c/Program\ Files/Google/Chrome/Application/chrome.exe
+        gowitness file -f $project/$domain-probe-url.txt -P $project/sd-screenshot --chrome-path /mnt/c/Program\ Files\ \(x86\)/Google/Chrome/Application/chrome.exe
         echo screenshoter done !!!
     }
 
@@ -123,12 +123,14 @@ function starter(){
     echo -e
     cat $project/$domain-probe-url.txt | sed 's/https\?:\/\///' > $project/$domain-sub-url-stripped.txt
     #cat $project/$domain-sub-url-stripped.txt
+    
     echo "${RED}Choose on which domain you want to scan${RESET}"
     select d in $(<$project/$domain-sub-url-stripped.txt);
     do test -n "$d\c" && break; 
-    echo ">>> Invalid Selection"; 
+    echo ">>> Invalid Selection";
     done
     URL=$d
+    
 }
 
 askurl(){
@@ -195,7 +197,6 @@ dpayloadinjector(){
     
     [ -z "$URL" ] && askurl || qsinjector
     echo Got this $URL
-
 }
 
 xssoptions(){
@@ -211,12 +212,12 @@ xssoptions(){
     #echo -n "kxss.txt : " & cat $project/$URL/kxss.txt | wc -l
 
     echo -e
-    echo "${RED}Choose which results to run with dalfox...${RESET}"
+    echo "${RED}Choose which results to run for XSS Scan...${RESET}"
     select d in $(<$project/$URL/tmplist);
     do test -n "$d" && break; 
     echo ">>> Invalid Selection"; 
     done
-    firstv=$d
+    firstv=$d      
 }
 
 
@@ -227,16 +228,16 @@ XSSURLSCAN(){
     #cat $project/$URL/uniqueparam.txt | /root/go/bin/kxss | sed 's/=.*/=/' | sed 's/URL: //' | sort -u > $project/$URL/kxss.txt && echo kxss.txt >> $project/$URL/tmplist
     
    
-    echo "Filename: ${BLUE}$project/$URL/$firstv ${RESET}" && cat $project/$URL/$firstv
-    echo "${BLUE}Piping Dalfox on $project/$URL/$firstv! ${RESET}"
-    echo -e
-    echo "${CYAN}${WUL}cat $project/$URL/$firstv | dalfox pipe --output $project/xss-poc-dalfox.txt${RESET}"
+    #echo "Filename: ${BLUE}$project/$URL/$firstv ${RESET}" && cat $project/$URL/$firstv
+    #echo "${BLUE}Piping Dalfox on $project/$URL/$firstv! ${RESET}"
+    #echo -e
+    #echo "${CYAN}${WUL}cat $project/$URL/$firstv | dalfox pipe --output $project/xss-poc-dalfox.txt${RESET}"
     
     #running here
-    echo -e
-    cat $project/$URL/$firstv | dalfox pipe --output $project/$URL/xss-poc-dalfox.txt
-    echo -e
-    echo "${MAGENTA}>>>>JOOOOOOOODDDDDDDDDDD!!!!!<<<< ${RESET}"
+    #echo -e
+    #cat $project/$URL/$firstv | dalfox pipe --output $project/$URL/xss-poc-dalfox.txt
+    #echo -e
+    #echo "${MAGENTA}>>>>JOOOOOOOODDDDDDDDDDD!!!!!<<<< ${RESET}"
 }
 
 
