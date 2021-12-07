@@ -46,8 +46,8 @@ function checker(){
         test -f "$project/sub-url-stripped.txt"
     }
 
-    is_massdns_checker(){
-        test -f "$project/ips.txt"
+    is_dnsx_checker(){
+        test -f "$project/dnsxaip.txt"
     }
     
     is_uniqueparameter_checker(){
@@ -60,11 +60,12 @@ function subdomains(){
     mkdir -p $project/subdomains
     subfinder -silent -d $domain > $project/subdomains/subdomains.txt
     cat $project/subdomains/subdomains.txt | httpx -o $project/subdomains/sd-httpx.txt
-    httpx -l $project/subdomains/sd-httpx.txt -follow-redirects -title -tech-detect -status-code -ip -fc 403,401,404 -no-color -o $project/subdomains/sd-httpx-details.csv
+    httpx -l $project/subdomains/sd-httpx.txt -retries 2  -follow-redirects -tech-detect -fc 403,401,404 -no-color -o $project/subdomains/sd-httpx-tech.txt
+    httpx -l $project/subdomains/sd-httpx.txt -retries 2 -follow-redirects -title -tech-detect -status-code -ip -fc 403,401,404 -no-color -o $project/subdomains/sd-httpx-details.csv
     httpx -l $project/subdomains/sd-httpx.txt -retries 2 -fc 302,403,401,404 -o $project/subdomains/sd-potentials.txt
     #httpx -silent -l $project/subdomains/sd-httpx.txt -follow-redirects -fc 403,401,404 -no-color -o $project/subdomains/httpx-redirect.csv
     cat $project/subdomains/subdomains.txt | gf interestingsubs > $project/subdomains/interestingsubs.txt
-    echo -e
+    cat $project/subdomains/sd-httpx-tech.txt | grep WordPress | cut -d " " -f 1 > $project/subdomains/wordpress-sites.txt
     cat $project/subdomains/sd-potentials.txt | sed 's/https\?:\/\///' > $project/sub-url-stripped.txt
 }
 
@@ -95,11 +96,14 @@ function find_ips(){
     echo -e "Massdns complete"
 }
 
-function find_ips_start(){
-    if is_massdns_checker; then
+function dnsxstart(){
+    if is_dnsx_checker; then
     echo "MassDns Result Exist Already" || return
     else
-        find_ips
+        echo -e "Now doing massdns on the subdomains"
+        cat $project/subdomains/subdomains.txt | dnsx -silent -a -resp-only -o $project/dnsaip.txt
+        cat $project/dnsaip.txt | sort -u > $project/dnsxaip.txt
+        cat $project/dnsxaip.txt && rm $project/dnsaip.txt
     fi
 }
 
@@ -246,7 +250,7 @@ function ACTIONS {
     fi
     if [[ ${choices[1]} ]]; then
         echo "[2] Finding IP Addresses"
-        find_ips_start
+        dnsxstart
     fi
     if [[ ${choices[2]} ]]; then
         echo "[3] Option 1 selected; Parameter Crawler"
