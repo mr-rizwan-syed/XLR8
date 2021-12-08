@@ -198,9 +198,17 @@ function startp(){
     done
 }
 
-
 function singleurlparam(){
     parametercrawler
+}
+
+function paramall(){
+    [ ! -f $project/sub-url-stripped.txt ] && { echo "$project/sub-url-stripped.txt does not exist."; retun; }
+    while IFS= read -r line; do
+        URL=$line
+        echo -e "Running on ParammeterCrawler on: $URL"
+        parametercrawler
+    done < $project/sub-url-stripped.txt
 }
 
 #Menu options
@@ -208,7 +216,7 @@ options[0]="Gather Subdomains"
 options[1]="Resolve IP's"
 options[2]="Parameter Crawler"
 options[3]="Run on single URL"
-options[4]="Advance Vulnerability Scan"
+options[4]="Run Parameter Crawler on all subdomains"
 
 #Variables
 ERROR=" "
@@ -259,6 +267,10 @@ function ACTIONS {
     if [[ ${choices[3]} ]]; then
         echo "Option 4 selected"
         singleurlparam
+    fi
+    if [[ ${choices[4]} ]]; then
+        echo "Option 5 selected"
+        paramall
     fi
 }
 
