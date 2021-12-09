@@ -11,3 +11,5 @@
 8. massdns with resolver file
 9. waybackurl 
 10. gau
+11. qsreplace
+12. dnsx
