@@ -147,7 +147,6 @@ parametercrawler(){
         cat $project/$URL/all-urls.txt | gf servers | anew -q $project/$URL/gf-param/servers.txt
         cat $project/$URL/all-urls.txt | gf typos | anew -q $project/$URL/gf-param/typos.txt
         find $project/$URL/gf-param/ -type f -empty -print -delete
-
     }
     
     upcvalidator(){
@@ -169,8 +168,28 @@ askurl(){
         parametercrawler
     }
 
+runnparamconall(){
+    while IFS= read subdo
+    do 
+        URL=$subdo
+        parametercrawler
+    done < "$project/sub-url-stripped.txt"
+}
+
+allopt(){
+    read -p "${RED}Type Yes to Scan all potential subdomains: ${RESET}" response && echo -e
+    case "$response" in
+        [yY][eE][sS]|[yY]) 
+            runnparamconall
+            ;;
+        *)
+            choicemaker
+            ;;
+    esac
+}
+
 function choicemaker(){
-    
+      
     if is_subdomain_checker; then
     echo "Subdomain File Already Exist" || return
     else
@@ -181,7 +200,7 @@ function choicemaker(){
     select d in $(<$project/sub-url-stripped.txt);
     do test "$d\c" && break; 
     echo ">>> Invalid Selection";
-    done || askurl;
+    done;
     URL=$d
 }
 
@@ -197,6 +216,8 @@ function startp(){
         esac
     done
 }
+
+
 
 function singleurlparam(){
     parametercrawler
@@ -270,7 +291,7 @@ function ACTIONS {
     fi
     if [[ ${choices[4]} ]]; then
         echo "Option 5 selected"
-        paramall
+        allopt
     fi
 }
 
