@@ -131,7 +131,7 @@ parametercrawler(){
 
         #gf-patterns
         #Some pattern may find sensitive info that's why string not replaced
-        cat $project/$URL/all-urls.txt | gf xss | qsinject -i 'FUZZ' -iu -decode | anew -q $project/$URL/gf-param/xss.txt
+        cat $project/$URL/all-urls.txt | gf xss | qsinject -i '' -iu -decode | anew -q $project/$URL/gf-param/xss.txt
         cat $project/$URL/all-urls.txt | gf sqli | qsinject -i 'FUZZ' -iu -decode | anew -q  $project/$URL/gf-param/sqli.txt
         cat $project/$URL/all-urls.txt | gf ssrf | qsinject -i 'FUZZ' -iu -decode | anew -q  $project/$URL/gf-param/ssrf.txt
         cat $project/$URL/all-urls.txt | gf ssti | qsinject -i '"FUZZ"' -iu -decode | anew -q  $project/$URL/gf-param/ssti.txt
