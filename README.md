@@ -23,3 +23,4 @@ Use the same project name which is used while JOD-Busher.sh
 11. dnsx
 12. anew
 13. nuclei
+14. subjack
