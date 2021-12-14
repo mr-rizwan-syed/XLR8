@@ -1,6 +1,6 @@
 #!/bin/bash
 #title:         JOD-XLR8.sh
-#description:   Automated and Modular Shell Script to Automate Security Vulnerability Scans
+#description:   Automated and Modular Shell Script to Automate Security Active Vulnerability Scan
 #author:        R12W4N
 #version:       1.0.1
 #==============================================================================
@@ -91,12 +91,35 @@ function cvenuclei(){
     nuclei -l $project/subdomains/sd-potentials.txt -t /root/nuclei-templates/cves/ -timeout 7 -silent -o $results/cve.txt
 }
 
+nucleiworkflowscan(){
+    [ -d $tmpdir ] && echo "$tmpdir Directory Exists" || mkdir -p $tmpdir
+    [ -d $results ] && echo "$results Directory Exists" || mkdir -p $results
+
+    jira=$project/subdomains/jira-sites.txt
+    [ -f $jira ] && nuclei -l $jira -w /root/nuclei-templates/workflows/jira-workflow.yaml -o $results/jira.txt
+
+    wordpress=$project/subdomains/wordpress-sites.txt
+    [ -f $wordpress ] && nuclei -l $wordpress -w /root/nuclei-templates/workflows/wordpress-workflow.yaml -o $results/wordpress.txt
+
+    apache=$project/subdomains/apache-sites.txt
+    [ -f $apache ] && nuclei -l $apache -w /root/nuclei-templates/workflows/apache-workflow.yaml -o $results/apache.txt
+
+    gitlab=$project/subdomains/gitlab-sites.txt
+    [ -f $gitlab ] && nuclei -l $gitlab -w /root/nuclei-templates/workflows/gitlab-workflow.yaml -o $results/gitlab.txt
+}
+
+subdomaintko(){
+    subjack -w $project/subdomains/subdomains.txt -t 100 -timeout 30 -c config/config.json
+}
 
 #Menu options
-options[0]="XSS-Dalfoxss"
-options[1]="XSS-QSInjector"
+
+options[0]="Subdomain Takeover"
+options[1]="CVE-Nuclei"
 options[2]="LFI-Nuclei"
-options[3]="CVE-Nuclei"
+options[3]="Nuclei-Workflow-Scan"
+options[4]="XSS-QSInjector"
+options[5]="XSS-Dalfoxss"
 
 #Variables
 ERROR=" "
@@ -133,24 +156,31 @@ done
 function ACTIONS {
 
     if [[ ${choices[0]} ]]; then
-        echo "[1] Running XSS-Dalfox"
-	    xssdalfoxss
+        echo "[1] Running Subdomain Takeover Scan"
+        subdomaintko
     fi
     if [[ ${choices[1]} ]]; then
-        echo "[2] Running XSS-QsInjector"
-        xssqsinjector
-    fi
-    if [[ ${choices[2]} ]]; then
-        echo "[2] Running LFI-Nuclei"
-        lfinuclei
-    fi
-    if [[ ${choices[3]} ]]; then
         echo "[2] Running CVE-Nuclei"
         cvenuclei
     fi
+    if [[ ${choices[2]} ]]; then
+        echo "[3] Running LFI-Nuclei"
+        lfinuclei
+    fi
+    if [[ ${choices[3]} ]]; then
+        echo "[1] Running Nuclei-Workflow-Scan"
+        nucleiworkflowscan
+    fi
+    if [[ ${choices[4]} ]]; then
+        echo "[5] Running XSS-QsInjector"
+        xssqsinjector
+    fi
+    if [[ ${choices[5]} ]]; then
+        echo "[6] Running XSS-Dalfox"
+	    xssdalfoxss
+    fi
 
 }
-
 
 projectdirectorycheck(){
     read -p "${RED}Project Name: ${RESET}" project

@@ -66,6 +66,9 @@ function subdomains(){
     #httpx -silent -l $project/subdomains/sd-httpx.txt -follow-redirects -fc 403,401,404 -no-color -o $project/subdomains/httpx-redirect.csv
     cat $project/subdomains/subdomains.txt | gf interestingsubs > $project/subdomains/interestingsubs.txt
     cat $project/subdomains/sd-httpx-tech.txt | grep WordPress | cut -d " " -f 1 > $project/subdomains/wordpress-sites.txt
+    cat $project/subdomains/sd-httpx-tech.txt | grep Jira | cut -d " " -f 1 > $project/subdomains/jira-sites.txt
+    cat $project/subdomains/sd-httpx-tech.txt | grep Apache | cut -d " " -f 1 > $project/subdomains/apache-sites.txt
+    cat $project/subdomains/sd-httpx-tech.txt | grep GitLab | cut -d " " -f 1 > $project/subdomains/gitlab-sites.txt
     cat $project/subdomains/sd-potentials.txt | sed 's/https\?:\/\///' > $project/sub-url-stripped.txt
 }
 
@@ -145,7 +148,6 @@ parametercrawler(){
         cat $project/$URL/all-urls.txt | gf php-sources | anew -q $project/$URL/gf-param/php-sources.txt
         cat $project/$URL/all-urls.txt | gf s3-buckets | anew -q $project/$URL/gf-param/s3-buckets.txt
         cat $project/$URL/all-urls.txt | gf servers | anew -q $project/$URL/gf-param/servers.txt
-        cat $project/$URL/all-urls.txt | gf typos | anew -q $project/$URL/gf-param/typos.txt
         find $project/$URL/gf-param/ -type f -empty -print -delete
     }
     
