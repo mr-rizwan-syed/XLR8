@@ -204,6 +204,7 @@ parametercrawler(){
         #Stripping
         echo -e
         cat Results/$domain/Subdomains/$URL/all-urls.txt | grep "=" | egrep -iv ".(jpg|jpeg|gif|css|tif|tiff|png|ttf|woff|woff2|ico|pdf|svg|txt|js)" | anew Results/$domain/Subdomains/$URL/P-URL.txt
+        cat Results/$domain/Subdomains/$URL/P-URL.txt | sed 's/.*.?//' | sed 's/&/\n/' | sed 's/=.*//' | anew Results/$domain/Subdomains/$URL/JustParameters.txt
         echo "[${GREEN}I${RESET}]Extracting URL with Valid Parameters${RESET}"
         cat Results/$domain/Subdomains/$URL/all-urls.txt | qsinject -i 'FUZZ' -iu -decode > Results/$domain/Subdomains/$URL/qsinjected.txt
 
