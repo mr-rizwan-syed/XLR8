@@ -2,7 +2,7 @@
 #title:         JOD-ALPHA
 #description:   Automated and Modular Shell Script to Automate Security Vulnerability Scans
 #author:        R12W4N
-#version:       1.0.0
+#version:       1.5.1
 #==============================================================================
 RED=`tput setaf 1`
 GREEN=`tput setaf 2`
@@ -36,8 +36,7 @@ banner(){
 }
 
 
-####Add Functions Here
-
+# do something
 function counter(){
     sdc=Results/$domain/subdomains.txt
     sdb=Results/$domain/dnsxout.txt 
@@ -75,27 +74,28 @@ function subdomains(){
       subdomain_brute(){
       echo "${BLUE}[+]${RESET}Initiating DNSRecon Bruteforcing"
       
-      dnsrecon -d $domain -D $(pwd)/MISC/subdomains-top1million-5000.txt -t brt -v > Results/$domain/dnsreconoutput.txt
+      dnsrecon -d $domain -D $(pwd)/MISC/subdomains-top1million-5000.txt -t brt > Results/$domain/dnsreconoutput.txt
       cat Results/$domain/dnsreconoutput.txt | cut -d " " -f 4 | grep $domain > Results/$domain/dnsbrute.txt 
       cat Results/$domain/dnsbrute.txt  | anew Results/$domain/subdomains.txt
       
-
       #dnsx -silent -w MISC/subdomains-top1million-5000.txt -d $domain | anew Results/$domain/dnsxout.txt
       #cat Results/$domain/dnsxout.txt | anew Results/$domain/subdomains.txt
 
       sdct=Results/$domain/subdomains.txt
       echo "${GREEN}[+]${RESET}Total Subdomains including DNS Brute"
+      [ -f $sdc ] && echo -e "${GREEN}[*]${RESET}Passive Subdomains Collected${YELLOW} [$(cat $sdc | wc -l)]${RESET}"
       [ -f $sdct ] && echo -e "${GREEN}[*]${RESET}Total Subdomains ${YELLOW} [$(cat $sdct | wc -l)]${RESET} "
       
       }
     
     subdomain_brute
 
-    echo "${GREEN}[+]${RESET}}Probing all Subdomains [Collecting StatusCode,Title,Tech,cname...]"
+    echo "${GREEN}[+]${RESET}Probing all Subdomains [Collecting StatusCode,Title,Tech,cname...]"
 
     cat Results/$domain/subdomains.txt | httpx -sc -content-type -location -title -server -td -ip -cname -asn -cdn -vhost -pa -random-agent -csv -o Results/$domain/$domain-probed.csv
     cat Results/$domain/$domain-probed.csv | cut -d ',' -f 9 | grep -v 'url' | anew Results/$domain/sd-httpx.txt
-    awk -F, '{print $9,$21}' Results/$domain/$domain-probed.csv | egrep -iv "401|403|404" | cut -d ' ' -f 1 | anew Results/$domain/potential-sd.txt
+    awk -F, '{print $9,$21}' Results/$domain/$domain-probed.csv | egrep -iv "401|403|404" | cut -d ' ' -f 1 | grep -v url | anew Results/$domain/potential-sd.txt
+    cat Results/$domain/potential-sd.txt | sed 's/https\?:\/\///' | cut -d ':' -f 1 | anew Results/$domain/sub-url-stripped.txt
 
     # Apache Subdomains
     echo "${GREEN}Apache Subdomains: ${RESET}"
@@ -155,23 +155,145 @@ function subdomains(){
     counter
 }
 
-
+#########################################################
+#Temporary Function 
+#########################################################
 allbackurls(){
     
-  #mkdir -p $project/$URL/gf-param
-  ##waybackurl-gau
   echo -e
         
   while IFS= read url
     do
        echo "Getting All URLs of $url"
-       mkdir -p Results/$domain/$URL/allurls.txt
-       gau $url | anew Results/$domain/$URL/allurls.txt
+       mkdir -p Results/$domain/Subdomains/$URL
+       gau $url | anew Results/$domain/Subdomains/$URL/allurls.txt
     done <"Results/$domain/potential-sd.txt"
 
+    cat Results/$domain/Subdomains/$URL/allurls.txt | unfurl -u Results/$domain/subdomains.txt
+  
   echo "[${GREEN}I${RESET}] Done with Waybackurls and Gau${RESET}"
 }
 
+function getallurls(){
+    if is_allurl_checker; then
+        echo "Results/$domain/allurls.txt File Already Exist" || return
+        # Todo: ReRun if requested in argument if rerun=yes then run again
+    else
+        allbackurls
+    fi
+
+}
+
+# cat allurls.txt | unfurl -u domains
+################################################################
+
+
+#### ParamALL
+
+parametercrawler(){
+    
+    runpc(){
+    
+        echo Scannning $URL
+        mkdir -p Results/$domain/Subdomains/$URL
+        ##waybackurl-gau
+        echo -e
+        gau $URL | anew Results/$domain/Subdomains/$URL/all-urls.txt
+        echo "[${GREEN}I${RESET}] Done with Gau and Waybackurls ${RESET}"
+               
+        #Stripping
+        echo -e
+        cat Results/$domain/Subdomains/$URL/all-urls.txt | grep "=" | egrep -iv ".(jpg|jpeg|gif|css|tif|tiff|png|ttf|woff|woff2|ico|pdf|svg|txt|js)" | anew Results/$domain/Subdomains/$URL/P-URL.txt
+        echo "[${GREEN}I${RESET}]Extracting URL with Valid Parameters${RESET}"
+        cat Results/$domain/Subdomains/$URL/all-urls.txt | qsinject -i 'FUZZ' -iu -decode > Results/$domain/Subdomains/$URL/qsinjected.txt
+
+        #gf-patterns
+        #Some pattern may find sensitive info that's why string not replaced
+        cat Results/$domain/Subdomains/$URL/all-urls.txt | gf xss | qsinject -i 'FUZZ' -iu -decode | anew -q Results/$domain/Subdomains/$URL/xss.txt
+        cat Results/$domain/Subdomains/$URL/all-urls.txt | gf sqli | qsinject -i 'FUZZ' -iu -decode | anew -q  Results/$domain/Subdomains/$URL/sqli.txt
+        cat Results/$domain/Subdomains/$URL/all-urls.txt | gf ssrf | qsinject -i 'FUZZ' -iu -decode | anew -q  Results/$domain/Subdomains/$URL/ssrf.txt
+        cat Results/$domain/Subdomains/$URL/all-urls.txt | gf ssti | qsinject -i 'FUZZ' -iu -decode | anew -q  Results/$domain/Subdomains/$URL/ssti.txt
+        cat Results/$domain/Subdomains/$URL/all-urls.txt | gf redirect | qsinject -i 'FUZZ' -iu -decode | anew -q  Results/$domain/Subdomains/$URL/redirect.txt
+        cat Results/$domain/Subdomains/$URL/all-urls.txt | gf lfi | qsinject -i ' ' | anew -q  Results/$domain/Subdomains/$URL/lfi.txt
+        cat Results/$domain/Subdomains/$URL/all-urls.txt | gf rce | qsinject -i 'FUZZ' -iu -decode | anew -q  Results/$domain/Subdomains/$URL/rce.txt
+        cat Results/$domain/Subdomains/$URL/all-urls.txt | gf upload-fields | qsinject -i 'FUZZ' -iu -decode | anew -q  Results/$domain/Subdomains/$URL/upload-fields.txt
+        cat Results/$domain/Subdomains/$URL/all-urls.txt | gf interestingparams | anew -q Results/$domain/Subdomains/$URL/interestingparams.txt
+        cat Results/$domain/Subdomains/$URL/all-urls.txt | gf interestingEXT | anew -q Results/$domain/Subdomains/$URL/interestingEXT.txt
+        cat Results/$domain/Subdomains/$URL/all-urls.txt | gf img-traversal | anew -q Results/$domain/Subdomains/$URL/img-traversal.txt
+        cat Results/$domain/Subdomains/$URL/all-urls.txt | gf php-sources | anew -q Results/$domain/Subdomains/$URL/php-sources.txt
+        cat Results/$domain/Subdomains/$URL/all-urls.txt | gf s3-buckets | anew -q Results/$domain/Subdomains/$URL/s3-buckets.txt
+        cat Results/$domain/Subdomains/$URL/all-urls.txt | gf servers | anew -q Results/$domain/Subdomains/$URL/servers.txt
+        find Results/$domain/Subdomains/$URL/ -type f -empty -print -delete
+
+    }
+    
+    upcvalidator(){
+        
+        if is_uniqueparameter_checker; then
+        echo "Parameter Results Exist Already for $URL" || return
+        else
+            runpc
+        fi
+    }
+
+    [ -z "$URL" ] && askurl || upcvalidator
+    echo Got this $URL
+    
+}
+
+askurl(){
+        read -p "${RED}URL: ${RESET}" URL && echo -e
+        parametercrawler
+    }
+
+runnparamconall(){
+    while IFS= read subdo
+    do 
+        URL=$subdo
+        parametercrawler
+    done < "Results/$domain/sub-url-stripped.txt"
+}
+
+allopt(){
+    read -p "${RED}Type ${GREEN}Yes${RESET} ${RED}to Scan all potential subdomains: ${RESET}" response && echo -e
+    case "$response" in
+        [yY][eE][sS]|[yY]) 
+            runnparamconall
+            ;;
+        *)
+            choicemaker
+            ;;
+    esac
+}
+
+function choicemaker(){
+      
+    if is_subdomain_checker; then
+    echo "Subdomain File Already Exist" || return
+    else
+        echo "${BLUE}Run Subdomain Scan First"
+    fi
+    
+    echo "${RED}Choose on which domain you want to scan${RESET}"
+    select d in $(<Results/$domain/sub-url-stripped.txt);
+    do test "$d\c" && break; 
+    echo ">>> Invalid Selection";
+    done;
+    URL=$d
+}
+
+function startp(){
+    while true; do
+        choicemaker
+        parametercrawler
+        read -p "${BLUE}Do you want to run it again on each subdomains ${RESET}[y/n]?" yn
+        case $yn in
+            [Yy]* ) startp; break;;
+            [Nn]* ) break;;
+            * ) echo "Please answer yes or no.";;
+        esac
+    done
+}
 
 ## Below functions checks for existence of result directories
 
@@ -200,8 +322,13 @@ function checker(){
         test -f "Results/$domain/allurls.txt"
     }
 
-
+    is_uniqueparameter_checker(){
+        test -f "Results/$domain/Subdomains/$URL/all-urls.txt"
+        test -f "Results/$domain/Subdomains/$URL/P-URL.txt"
+    }
 }
+
+
 
 function getsubdomains(){
     if is_subdomain_checker; then
@@ -215,36 +342,77 @@ function getsubdomains(){
 
 }
 
-function getallurls(){
-    if is_allurl_checker; then
-        echo "Results/$domain/allurls.txt File Already Exist" || return
 
-        # Todo: ReRun if requested in argument if rerun=yes then run again
-
-    else
-        allbackurls
-    fi
-
+# Show usage via commandline arguments
+usage() {
+  banner
+  echo "~~~~~~~~~~~"
+  echo " U S A G E"
+  echo "~~~~~~~~~~~"
+  echo "Usage: ./jod-alpha.sh [option]"
+  echo "  options:"
+  echo "    -d    : Specify Domain here, This will Gather Subdomains"
+  echo "    -gau  : Gather All Subdomain URLs "
+  echo "    -gf   : Gather Subdomain URLs and run GF Patterns - Choice Menu"
+  echo "    -all  : Gather All Subdomain URLs and run GF Patterns - Auto"
+  echo "    -rr   : ReRun, Do Assessment Again on the given Domain"
+  echo "    -i    : Show interactive menu"
+  echo "    -h    : Show this help"
+  echo ""
+  exit
 }
 
-POSITIONAL_ARGS=()
-function usage()
-{
-    echo "JOD-Alpha Help Menu"
-    echo ""
-    echo "./jod-alpha.sh -d=domain.com"
-    echo "" 
-    echo "-h --help"
-    echo "-d --domain=domain.com"
+# Function to display menu options
+show_menus() {
+    banner
+    echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    echo "Main Menu"
+    echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    echo "  1. Gather Subdomains"
+    echo "  2. Collect All URLs"
+    echo "  3. Gather Subdomain URLs and run GF Patterns - Choice Menu"
+    echo "  4. Gather All Subdomain URLs and run GF Patterns - Auto"
+    echo "  5. ReRun, Do Assessment Again on the given Domain"
+    echo "  ---"
+    echo "  6. Exit"
     echo ""
 }
 
+# Function to read menu input selection and take a action
+read_options(){
+    local choice
+    read -p "Enter choice [ 1 - 2 ] " choice
+    case $choice in
+    1) getsubdomains;;
+    2) getallurls;;
+    3) startp;;
+    4) allopt;;
+    5) rerun;;
+    6) exit 0;;
+    *) echo -e "${RED}Error...${RESET}" && sleep 2
+    esac
+}
+
+# Use menu...
+do_menu() {
+  # Main menu handler loop
+  while true
+  do
+    show_menus
+    read_options
+  done
+}
+
+# If no arguments provided, display usage information
+
+#[[ -n "$2" ]] || usage
+
+# Process command line arguments
 while [[ $# -gt 0 ]]; do
   case $1 in
     -h|--help)
       usage
       shift 
-      shift
       ;;
     -d|--domain)
       domain="$2"
@@ -252,19 +420,25 @@ while [[ $# -gt 0 ]]; do
       checker
       getsubdomains
       shift 
-      shift
       ;;
     -gau|--getallurls)
       getallurls
       shift 
-      shift
       ;;
     -rr|--rerun)
       rerun=yes
       shift 
       ;;
-    --default)
-      DEFAULT=YES
+    -gf|--gfpatterns)
+      startp
+      shift 
+      ;;
+    -all|--allurls)
+      allopt
+      shift 
+      ;;
+    -i|--interactive)
+      do_menu
       shift 
       ;;
     -*|--*)
@@ -279,10 +453,6 @@ while [[ $# -gt 0 ]]; do
 done
 
 set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
-
-#echo "Domain           = ${domain}"
-#echo "DEFAULT         =  ${DEFAULT}"
-#echo "Number files in SEARCH PATH with EXTENSION:" $(echo "${project}"/*."${domain}")
 
 if [[ -n $1 ]]; then
     usage
