@@ -94,60 +94,60 @@ function subdomains(){
 
     cat Results/$domain/subdomains.txt | httpx -sc -content-type -location -title -server -td -ip -cname -asn -cdn -vhost -pa -random-agent -csv -o Results/$domain/$domain-probed.csv
     cat Results/$domain/$domain-probed.csv | cut -d ',' -f 9 | grep -v 'url' | anew Results/$domain/sd-httpx.txt
-    awk -F, '{print $9,$21}' Results/$domain/$domain-probed.csv | egrep -iv "401|403|404" | cut -d ' ' -f 1 | grep -v url | anew Results/$domain/potential-sd.txt
+    csvcut -c url,status-code Results/$domain/$domain-probed.csv | egrep -iv "401|403|404" | cut -d ',' -f 1 | anew Results/$domain/potential-sd.txt
     cat Results/$domain/potential-sd.txt | sed 's/https\?:\/\///' | cut -d ':' -f 1 | anew Results/$domain/sub-url-stripped.txt
 
     # Apache Subdomains
     echo "${GREEN}Apache Subdomains: ${RESET}"
-    awk -F, '/Apache/ {print}' Results/$domain/$domain-probed.csv | cut -d ',' -f 9,12,31 --output-delimiter=" ${MAGENTA}>>>${RESET} "
-    awk -F, '/Tomcat/ {print}' Results/$domain/$domain-probed.csv | cut -d ',' -f 9,12,31 --output-delimiter=" ${MAGENTA}>>>${RESET} "
-    awk -F, '/Apache/ {print}' Results/$domain/$domain-probed.csv | cut -d ',' -f 9 | anew Results/$domain/apache-urls.txt
-    awk -F, '/Tomcat/ {print}' Results/$domain/$domain-probed.csv | cut -d ',' -f 9 | anew Results/$domain/apache-tomcat-urls.txt
+    csvcut -c url,technologies Results/$domain/$domain-probed.csv | grep -E 'Apache' | cut -d ',' -f 1,2 --output-delimeter=" ${MAGENTA}>>>${RESET} "
+    csvcut -c url,technologies Results/$domain/$domain-probed.csv | grep -E 'Apache' | cut -d ',' -f 1 | anew Results/$domain/apache-urls.txt
+    csvcut -c url,technologies Results/$domain/$domain-probed.csv | grep -E 'Tomcat' | cut -d ',' -f 1,2 --output-delimeter=" ${MAGENTA}>>>${RESET} "
+    csvcut -c url,technologies Results/$domain/$domain-probed.csv | grep -E 'Tomcat' | cut -d ',' -f 1 | anew Results/$domain/apache-tomcat-urls.txt
 
     # Nginx Subdomains
-    echo "${GREEN}Nginx  Subdomains: ${RESET}"  
-    awk -F, '/Nginx/ {print}' Results/$domain/$domain-probed.csv | cut -d ',' -f 9,12,31 --output-delimiter=" ${MAGENTA}>>>${RESET} "
-    awk -F, '/Nginx/ {print}' Results/$domain/$domain-probed.csv | cut -d ',' -f 9 | anew Results/$domain/nginx-urls.txt
+    echo "${GREEN}Nginx  Subdomains: ${RESET}" 
+    csvcut -c url,technologies Results/$domain/$domain-probed.csv | grep -E 'Nginx' | cut -d ',' -f 1,2 --output-delimeter=" ${MAGENTA}>>>${RESET} "
+    csvcut -c url,technologies Results/$domain/$domain-probed.csv | grep -E 'Nginx' | cut -d ',' -f 1 | anew Results/$domain/nginx-urls.txt
 
     # IIS Subdomains
     echo "${GREEN}IIS  Subdomains: ${RESET}"
-    awk -F, '/IIS/ {print}' Results/$domain/$domain-probed.csv | cut -d ',' -f 9,12,31 --output-delimiter=" ${MAGENTA}>>>${RESET} "
-    awk -F, '/IIS/ {print}' Results/$domain/$domain-probed.csv | cut -d ',' -f 9 | anew Results/$domain/IIS-urls.txt
+    csvcut -c url,technologies Results/$domain/$domain-probed.csv | grep -E 'IIS' | cut -d ',' -f 1,2 --output-delimeter=" ${MAGENTA}>>>${RESET} "
+    csvcut -c url,technologies Results/$domain/$domain-probed.csv | grep -E 'IIS' | cut -d ',' -f 1 | anew Results/$domain/IIS-urls.txt
 
     # Wordpress Subdomains
     echo "${GREEN}Wordpress Subdomains: ${RESET}"
-    awk -F, '/Wordpress|WordPress/ {print}' Results/$domain/$domain-probed.csv | cut -d ',' -f 9,12,31 --output-delimiter=" ${MAGENTA}>>>${RESET} "
-    awk -F, '/Wordpress|WordPress/ {print}' Results/$domain/$domain-probed.csv | cut -d ',' -f 9 | anew Results/$domain/wordpress-urls.txt
+    csvcut -c url,technologies Results/$domain/$domain-probed.csv | grep -E 'Wordpress|WordPress' | cut -d ',' -f 1,2 --output-delimeter=" ${MAGENTA}>>>${RESET} "
+    csvcut -c url,technologies Results/$domain/$domain-probed.csv | grep -E 'Wordpress|WordPress' | cut -d ',' -f 1 | anew Results/$domain/wordpress-urls.txt
 
     # Joomla Subdomains
     echo "${GREEN}Joomla Subdomains: ${RESET}"
-    awk -F, '/Joomla/ {print}' Results/$domain/$domain-probed.csv | cut -d ',' -f 9,12,31 --output-delimiter=" ${MAGENTA}>>>${RESET} "
-    awk -F, '/Joomla/ {print}' Results/$domain/$domain-probed.csv | cut -d ',' -f 9 | anew Results/$domain/joomla-urls.txt
+    csvcut -c url,technologies Results/$domain/$domain-probed.csv | grep -E 'Joomla' | cut -d ',' -f 1,2 --output-delimeter=" ${MAGENTA}>>>${RESET} "
+    csvcut -c url,technologies Results/$domain/$domain-probed.csv | grep -E 'Joomla' | cut -d ',' -f 1 | anew Results/$domain/joomla-urls.txt
 
     # Drupal Subdomains
     echo "${GREEN}Drupal Subdomains: ${RESET}"
-    awk -F, '/Drupal/ {print}' Results/$domain/$domain-probed.csv | cut -d ',' -f 9,12,31 --output-delimiter=" ${MAGENTA}>>>${RESET} "
-    awk -F, '/Drupal/ {print}' Results/$domain/$domain-probed.csv | cut -d ',' -f 9 | anew Results/$domain/drupal-urls.txt
+    csvcut -c url,technologies Results/$domain/$domain-probed.csv | grep -E 'Drupal' | cut -d ',' -f 1,2 --output-delimeter=" ${MAGENTA}>>>${RESET} "
+    csvcut -c url,technologies Results/$domain/$domain-probed.csv | grep -E 'Drupal' | cut -d ',' -f 1 | anew Results/$domain/drupal-urls.txt
 
     # Jira Subdomains
     echo "${GREEN}Jira Subdomains: ${RESET}"
-    awk -F, '/Jira/ {print}' Results/$domain/$domain-probed.csv | cut -d ',' -f 9,12,31 --output-delimiter=" ${MAGENTA}>>>${RESET} "
-    awk -F, '/Jira/ {print}' Results/$domain/$domain-probed.csv | cut -d ',' -f 9 | anew Results/$domain/jira-urls.txt
+    csvcut -c url,technologies Results/$domain/$domain-probed.csv | grep -E 'Jira' | cut -d ',' -f 1,2 --output-delimeter=" ${MAGENTA}>>>${RESET} "
+    csvcut -c url,technologies Results/$domain/$domain-probed.csv | grep -E 'Jira' | cut -d ',' -f 1 | anew Results/$domain/jira-urls.txt
 
     # Gitlab Subdomains
     echo "${GREEN}GitLab  Subdomains: ${RESET}"
-    awk -F, '/GitLab/ {print}' Results/$domain/$domain-probed.csv | cut -d ',' -f 9,12,31 --output-delimiter=" ${MAGENTA}>>>${RESET} "
-    awk -F, '/GitLab/ {print}' Results/$domain/$domain-probed.csv | cut -d ',' -f 9 | anew Results/$domain/gitlab-urls.txt
+    csvcut -c url,technologies Results/$domain/$domain-probed.csv | grep -E 'GitLab' | cut -d ',' -f 1,2 --output-delimeter=" ${MAGENTA}>>>${RESET} "
+    csvcut -c url,technologies Results/$domain/$domain-probed.csv | grep -E 'GitLab' | cut -d ',' -f 1 | anew Results/$domain/gitlab-urls.txt
 
     # JBoss Subdomains
     echo "${GREEN}JBoss Subdomains: ${RESET}"
-    awk -F, '/JBoss/ {print}' Results/$domain/$domain-probed.csv | cut -d ',' -f 9,12,31 --output-delimiter=" ${MAGENTA}>>>${RESET} "
-    awk -F, '/JBoss/ {print}' Results/$domain/$domain-probed.csv | cut -d ',' -f 9 | anew Results/$domain/jboss-urls.txt
+    csvcut -c url,technologies Results/$domain/$domain-probed.csv | grep -E 'JBoss' | cut -d ',' -f 1,2 --output-delimeter=" ${MAGENTA}>>>${RESET} "
+    csvcut -c url,technologies Results/$domain/$domain-probed.csv | grep -E 'JBoss' | cut -d ',' -f 1 | anew Results/$domain/jboss-urls.txt
 
     # BigIP Subdomains
     echo "${GREEN}BigIP Subdomains: ${RESET}"
-    awk -F, '/BigIP/ {print}' Results/$domain/$domain-probed.csv | cut -d ',' -f 9,12,31 --output-delimiter=" ${MAGENTA}>>>${RESET} "
-    awk -F, '/BigIP/ {print}' Results/$domain/$domain-probed.csv | cut -d ',' -f 9 | anew Results/$domain/bigip-urls.txt
+    csvcut -c url,technologies Results/$domain/$domain-probed.csv | grep -E 'BigIP' | cut -d ',' -f 1,2 --output-delimeter=" ${MAGENTA}>>>${RESET} "
+    csvcut -c url,technologies Results/$domain/$domain-probed.csv | grep -E 'BigIP' | cut -d ',' -f 1 | anew Results/$domain/bigip-urls.txt
 
     # Delete Empty Files in domain Folder
     find Results/$domain -type f -empty -print -delete
